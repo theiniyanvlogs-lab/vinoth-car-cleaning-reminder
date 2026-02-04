@@ -2,24 +2,22 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Vinoth Car Cleaning – Payments</title>
+<title>Vinoth Car Cleaning – Pending Payments</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <style>
 body{font-family:Arial;background:#f4f6f8;padding:15px}
 h2{text-align:center}
-.form,.list,.actions{background:#fff;padding:15px;border-radius:8px;margin-bottom:15px}
+.form,.actions{background:#fff;padding:15px;border-radius:8px;margin-bottom:15px}
 input,select{width:100%;padding:10px;margin-top:8px;border-radius:6px;border:1px solid #ccc}
-button{padding:10px;width:100%;margin-top:8px;border:none;border-radius:6px;font-size:14px;cursor:pointer}
+button{padding:12px;width:100%;margin-top:10px;border:none;border-radius:6px;font-size:15px;cursor:pointer}
 .add{background:#007bff;color:#fff}
 .pdfBtn{background:#198754;color:#fff}
-.card{border-bottom:1px solid #ddd;padding:10px 0}
-small{color:#555}
 </style>
 </head>
 <body>
 
-<h2>🚗 Vinoth Car Cleaning – Payments</h2>
+<h2>🚗 Vinoth Car Cleaning – Pending Payments</h2>
 
 <div class="form">
 <h3>Add Customer</h3>
@@ -49,18 +47,11 @@ small{color:#555}
   <option value="paid">Paid</option>
 </select>
 
-<button type="button" class="add" onclick="addPayment()">Save</button>
+<button class="add" onclick="savePayment()">Save</button>
 </div>
 
 <div class="actions">
-  <button type="button" class="pdfBtn" onclick="downloadPendingPDF()">
-    Export Pending (PDF)
-  </button>
-</div>
-
-<div class="list">
-<h3>Payments List</h3>
-<div id="paymentList"></div>
+  <button class="pdfBtn" onclick="exportPendingPDF()">Export Pending (PDF)</button>
 </div>
 
 <!-- Firebase -->
@@ -71,20 +62,17 @@ small{color:#555}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
 <script>
+/* 🔥 FIREBASE INIT */
 firebase.initializeApp({
   apiKey:"AIzaSyCWbIwSjYSHrMYvvKK8HByqcDy6wUj7pu8",
   authDomain:"vinoth-car-cleaning-reminder.firebaseapp.com",
   projectId:"vinoth-car-cleaning-reminder"
 });
-
 const db = firebase.firestore();
 const ref = db.collection("carPayments");
 
-let payments = [];
-let visiblePayments = [];
-
-/* ADD */
-function addPayment(){
+/* SAVE */
+function savePayment(){
   const data = {
     name: ownerName.value.trim(),
     flat: flatNo.value.trim(),
@@ -92,7 +80,7 @@ function addPayment(){
     mobile: mobile.value.replace(/\s+/g,""),
     month: month.value + " " + year.value,
     amount: Number(amount.value),
-    status: status.value.toLowerCase()
+    status: status.value.toLowerCase() // 🔑 FORCE LOWERCASE
   };
 
   if(data.mobile.length < 10 || !month.value || !year.value || (!data.flat && !data.car)){
@@ -104,7 +92,6 @@ function addPayment(){
   resetForm();
 }
 
-/* RESET */
 function resetForm(){
   ownerName.value=flatNo.value=carNo.value=mobile.value="";
   month.value=year.value="";
@@ -112,57 +99,32 @@ function resetForm(){
   status.value="pending";
 }
 
-/* LOAD DATA */
-ref.onSnapshot(snapshot=>{
-  payments=[];
-  snapshot.forEach(doc=>payments.push(doc.data()));
-  visiblePayments=[...payments];
-  render();
-});
-
-/* RENDER */
-function render(){
-  paymentList.innerHTML="";
-  visiblePayments.forEach(p=>{
-    paymentList.innerHTML += `
-      <div class="card">
-        <b>${p.name || "Owner"}</b>
-        ${p.flat ? `(Flat ${p.flat})` : ""}<br>
-        ${p.car ? `🚗 ${p.car}<br>` : ""}
-        📞 ${p.mobile}<br>
-        🗓️ ${p.month}<br>
-        💰 ₹${p.amount}
-        <small> • ${p.status.toUpperCase()}</small>
-      </div>
-    `;
-  });
-}
-
-/* PDF – SAFE VERSION */
-function downloadPendingPDF(){
+/* 📄 EXPORT PDF – DIRECT FROM FIRESTORE */
+async function exportPendingPDF(){
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF();
 
-  const pending = visiblePayments.filter(
-    p => (p.status||"").toLowerCase() === "pending"
-  );
+  const snap = await ref.where("status","==","pending").get();
 
   doc.setFontSize(14);
   doc.text("Vinoth Car Cleaning – Pending Payments", 10, 10);
 
-  if(pending.length === 0){
+  if(snap.empty){
     doc.setFontSize(12);
     doc.text("No pending records available.", 10, 25);
   } else {
     let y = 25;
-    pending.forEach((p,i)=>{
+    let i = 1;
+    snap.forEach(docu=>{
+      const p = docu.data();
       doc.setFontSize(10);
       doc.text(
-        `${i+1}. ${p.name || "Owner"} | Flat: ${p.flat||"-"} | Car: ${p.car||"-"} | Mobile: ${p.mobile} | ${p.month} | ₹${p.amount}`,
+        `${i}. ${p.name || "Owner"} | Flat: ${p.flat||"-"} | Car: ${p.car||"-"} | Mobile: ${p.mobile} | ${p.month} | ₹${p.amount}`,
         10,
         y
       );
       y += 8;
+      i++;
       if(y > 280){ doc.addPage(); y = 10; }
     });
   }
