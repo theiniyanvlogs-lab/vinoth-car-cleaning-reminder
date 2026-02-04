@@ -15,8 +15,6 @@ button{padding:10px;width:100%;margin-top:8px;border:none;border-radius:6px;font
 .showAll{background:#6c757d;color:#fff}
 .pending{background:#dc3545;color:#fff}
 .paid{background:#28a745;color:#fff}
-.edit{background:#ffc107}
-.delete{background:#6c757d;color:#fff}
 .card{border-bottom:1px solid #ddd;padding:10px 0}
 small{color:#555}
 #lockScreen{max-width:380px;margin:80px auto;padding:20px;background:#fff;border-radius:10px;
@@ -91,39 +89,44 @@ box-shadow:0 4px 10px rgba(0,0,0,0.1);text-align:center}
 
 <script>
 /* 🔐 PASSWORD */
-const ALLOWED_PASSWORDS=["vinoth600","clean@247"];
-const PASSWORD_VERSION="v7";
+const ALLOWED_PASSWORDS = ["vinoth600","clean@247"];
+const PASSWORD_VERSION = "v8";
 
-if(localStorage.getItem("appUnlocked")===PASSWORD_VERSION){
+if(localStorage.getItem("appUnlocked") === PASSWORD_VERSION){
   lockScreen.style.display="none";
   appContent.style.display="block";
 }
 function unlockApp(){
   if(ALLOWED_PASSWORDS.includes(passwordInput.value)){
-    localStorage.setItem("appUnlocked",PASSWORD_VERSION);
+    localStorage.setItem("appUnlocked", PASSWORD_VERSION);
     lockScreen.style.display="none";
     appContent.style.display="block";
-  } else errorText.innerText="Wrong password";
+  } else {
+    errorText.innerText="Wrong password";
+  }
 }
 
-/* 🔥 FIREBASE CONFIG (REPLACE VALUES) */
-const firebaseConfig={
-  apiKey:"YOUR_API_KEY",
-  authDomain:"YOUR_PROJECT.firebaseapp.com",
-  projectId:"YOUR_PROJECT_ID"
+/* 🔥 FIREBASE CONFIG (REAL VALUES) */
+const firebaseConfig = {
+  apiKey: "AIzaSyCWbIwSjYSHrMYvvKK8HByqcDy6wUj7pu8",
+  authDomain: "vinoth-car-cleaning-reminder.firebaseapp.com",
+  projectId: "vinoth-car-cleaning-reminder",
+  storageBucket: "vinoth-car-cleaning-reminder.firebasestorage.app",
+  messagingSenderId: "891866037857",
+  appId: "1:891866037857:web:47065f705a44cbb85db420"
 };
+
 firebase.initializeApp(firebaseConfig);
-const db=firebase.firestore();
-const ref=db.collection("carPayments");
+const db = firebase.firestore();
+const ref = db.collection("carPayments");
 
 /* STATE */
-let payments=[];
-let editId=null;
-let viewMode="all";
+let payments = [];
+let viewMode = "all";
 
-/* ➕ ADD / ✏️ EDIT */
+/* ➕ ADD */
 async function addOrUpdate(){
-  const data={
+  const data = {
     name: ownerName.value.trim(),
     flat: flatNo.value.trim(),
     car: carNo.value.trim(),
@@ -143,9 +146,7 @@ async function addOrUpdate(){
     return;
   }
 
-  resetForm();      // clear immediately
-  editId = null;
-
+  resetForm();
   await ref.add(data);
 }
 
@@ -159,39 +160,42 @@ function resetForm(){
 
 /* VIEW */
 function setView(mode){
-  viewMode=mode;
+  viewMode = mode;
   render();
 }
 
 /* LOAD */
-ref.onSnapshot(snap=>{
-  payments=[];
-  snap.forEach(d=>payments.push({...d.data(),id:d.id}));
+ref.onSnapshot(snapshot=>{
+  payments = [];
+  snapshot.forEach(doc=>{
+    payments.push({...doc.data(), id: doc.id});
+  });
   render();
 });
 
 /* RENDER */
 function render(){
   paymentList.innerHTML="";
-  let total=0;
+  let total = 0;
 
   payments.forEach(p=>{
     if(viewMode==="pending" && p.status!=="pending") return;
-    if(p.status==="pending") total+=p.amount;
+    if(p.status==="pending") total += p.amount;
 
-    paymentList.innerHTML+=`
-    <div class="card">
-      <b>${p.name||"Owner"}</b>
-      ${p.flat?`(Flat ${p.flat})`:""}<br>
-      ${p.car?`🚗 ${p.car}<br>`:""}
-      📞 ${p.mobile}<br>
-      🗓️ ${p.month}<br>
-      💰 ₹${p.amount}
-      <small> • ${p.status.toUpperCase()}</small>
-    </div>`;
+    paymentList.innerHTML += `
+      <div class="card">
+        <b>${p.name || "Owner"}</b>
+        ${p.flat ? `(Flat ${p.flat})` : ""}<br>
+        ${p.car ? `🚗 ${p.car}<br>` : ""}
+        📞 ${p.mobile}<br>
+        🗓️ ${p.month}<br>
+        💰 ₹${p.amount}
+        <small> • ${p.status.toUpperCase()}</small>
+      </div>
+    `;
   });
 
-  totalPending.innerText=total;
+  totalPending.innerText = total;
 }
 </script>
 
