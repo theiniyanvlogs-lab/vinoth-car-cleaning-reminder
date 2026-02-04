@@ -15,21 +15,9 @@ button{padding:10px;width:100%;margin-top:8px;border:none;border-radius:6px;font
 .showAll{background:#6c757d;color:#fff}
 .card{border-bottom:1px solid #ddd;padding:10px 0}
 small{color:#555}
-#lockScreen{max-width:380px;margin:80px auto;padding:20px;background:#fff;border-radius:10px;box-shadow:0 4px 10px rgba(0,0,0,0.1);text-align:center}
 </style>
 </head>
 <body>
-
-<!-- 🔒 PASSWORD -->
-<div id="lockScreen">
-  <h3>🔒 Enter Password</h3>
-  <input type="password" id="passwordInput">
-  <button id="unlockBtn" class="add" type="button">Unlock</button>
-  <p id="errorText" style="color:red"></p>
-</div>
-
-<!-- 🔓 APP -->
-<div id="appContent" style="display:none">
 
 <h2>🚗 Vinoth Car Cleaning – Payments</h2>
 
@@ -65,12 +53,12 @@ small{color:#555}
   <option value="paid">Paid</option>
 </select>
 
-<button id="saveBtn" class="add" type="button">Save</button>
+<button type="button" class="add" onclick="addPayment()">Save</button>
 </div>
 
 <div class="actions">
-  <button id="pendingBtn" class="pendingBtn" type="button">Show Pending</button>
-  <button id="allBtn" class="showAll" type="button">Show All</button>
+  <button type="button" class="pendingBtn" onclick="showPending()">Show Pending</button>
+  <button type="button" class="showAll" onclick="showAll()">Show All</button>
 </div>
 
 <div class="list">
@@ -78,81 +66,42 @@ small{color:#555}
 <div id="paymentList"></div>
 </div>
 
-</div>
-
-<!-- 🔥 FIREBASE -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
 <script>
-/* 🔐 PASSWORD */
-const ALLOWED_PASSWORDS=["vinoth600","clean@247"];
-const PASSWORD_VERSION="v11";
-
-const lockScreen=document.getElementById("lockScreen");
-const appContent=document.getElementById("appContent");
-
-if(localStorage.getItem("appUnlocked")===PASSWORD_VERSION){
-  lockScreen.style.display="none";
-  appContent.style.display="block";
-}
-
-document.getElementById("unlockBtn").addEventListener("click",()=>{
-  if(ALLOWED_PASSWORDS.includes(passwordInput.value)){
-    localStorage.setItem("appUnlocked",PASSWORD_VERSION);
-    lockScreen.style.display="none";
-    appContent.style.display="block";
-  } else {
-    errorText.innerText="Wrong password";
-  }
-});
-
-/* 🔥 FIREBASE */
 firebase.initializeApp({
   apiKey:"AIzaSyCWbIwSjYSHrMYvvKK8HByqcDy6wUj7pu8",
   authDomain:"vinoth-car-cleaning-reminder.firebaseapp.com",
   projectId:"vinoth-car-cleaning-reminder"
 });
-const db=firebase.firestore();
-const ref=db.collection("carPayments");
 
-/* STATE */
-let payments=[];
-let viewMode="all";
+const db = firebase.firestore();
+const ref = db.collection("carPayments");
 
-/* BUTTON EVENTS */
-document.getElementById("pendingBtn").addEventListener("click",()=>{
-  viewMode="pending";
-  render();
-});
-document.getElementById("allBtn").addEventListener("click",()=>{
-  viewMode="all";
-  render();
-});
-document.getElementById("saveBtn").addEventListener("click",addOrUpdate);
+let payments = [];
+let visiblePayments = [];
 
-/* ADD */
-async function addOrUpdate(){
-  const data={
-    name:ownerName.value.trim(),
-    flat:flatNo.value.trim(),
-    car:carNo.value.trim(),
-    mobile:mobile.value.replace(/\s+/g,""),
-    month:month.value+" "+year.value,
-    amount:Number(amount.value),
-    status:status.value.toLowerCase()
+function addPayment(){
+  const data = {
+    name: ownerName.value.trim(),
+    flat: flatNo.value.trim(),
+    car: carNo.value.trim(),
+    mobile: mobile.value.replace(/\s+/g,""),
+    month: month.value + " " + year.value,
+    amount: Number(amount.value),
+    status: status.value.toLowerCase()
   };
 
-  if(data.mobile.length<10 || !month.value || !year.value || (!data.flat && !data.car)){
-    alert("Please enter Mobile Number and Flat or Car");
+  if(data.mobile.length < 10 || !month.value || !year.value || (!data.flat && !data.car)){
+    alert("Enter Mobile + Flat or Car");
     return;
   }
 
+  ref.add(data);
   resetForm();
-  await ref.add(data);
 }
 
-/* RESET */
 function resetForm(){
   ownerName.value=flatNo.value=carNo.value=mobile.value="";
   month.value=year.value="";
@@ -160,36 +109,46 @@ function resetForm(){
   status.value="pending";
 }
 
-/* FIREBASE LISTENER */
-ref.onSnapshot(snap=>{
-  payments=[];
-  snap.forEach(d=>payments.push({...d.data(),id:d.id}));
+ref.onSnapshot(snapshot=>{
+  payments = [];
+  snapshot.forEach(doc=>{
+    payments.push(doc.data());
+  });
+  visiblePayments = [...payments];
   render();
 });
 
-/* RENDER */
+function showPending(){
+  visiblePayments = payments.filter(p => (p.status||"").toLowerCase() === "pending");
+  render();
+}
+
+function showAll(){
+  visiblePayments = [...payments];
+  render();
+}
+
 function render(){
   paymentList.innerHTML="";
-  let total=0;
+  let total = 0;
 
-  payments.forEach(p=>{
-    const s=(p.status||"").toLowerCase();
-    if(viewMode==="pending" && s!=="pending") return;
-    if(s==="pending") total+=p.amount;
+  visiblePayments.forEach(p=>{
+    if((p.status||"").toLowerCase()==="pending") total += p.amount;
 
-    paymentList.innerHTML+=`
+    paymentList.innerHTML += `
       <div class="card">
-        <b>${p.name||"Owner"}</b>
-        ${p.flat?`(Flat ${p.flat})`:""}<br>
-        ${p.car?`🚗 ${p.car}<br>`:""}
+        <b>${p.name || "Owner"}</b>
+        ${p.flat ? `(Flat ${p.flat})` : ""}<br>
+        ${p.car ? `🚗 ${p.car}<br>` : ""}
         📞 ${p.mobile}<br>
         🗓️ ${p.month}<br>
         💰 ₹${p.amount}
-        <small> • ${s.toUpperCase()}</small>
-      </div>`;
+        <small> • ${p.status.toUpperCase()}</small>
+      </div>
+    `;
   });
 
-  totalPending.innerText=total;
+  totalPending.innerText = total;
 }
 </script>
 
