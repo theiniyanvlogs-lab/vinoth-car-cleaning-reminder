@@ -1,182 +1,209 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Vinoth Car Cleaning – Paid / Pending</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta charset="UTF-8">
+<title>Vinoth Car Cleaning – Payments</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
 
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #f4f6f8;
-      padding: 15px;
-    }
-    h2 {
-      text-align: center;
-    }
-    .form, .list {
-      background: #fff;
-      padding: 15px;
-      border-radius: 8px;
-      margin-bottom: 20px;
-    }
-    input, select {
-      width: 100%;
-      padding: 10px;
-      margin-top: 8px;
-      border-radius: 6px;
-      border: 1px solid #ccc;
-    }
-    button {
-      padding: 10px;
-      width: 100%;
-      margin-top: 10px;
-      border: none;
-      border-radius: 6px;
-      font-size: 15px;
-      cursor: pointer;
-    }
-    .add {
-      background: #007bff;
-      color: white;
-    }
-    .paid {
-      background: #28a745;
-      color: white;
-    }
-    .pending {
-      background: #dc3545;
-      color: white;
-    }
-    .whatsapp {
-      background: #25D366;
-      color: white;
-      margin-top: 5px;
-    }
-    .card {
-      border-bottom: 1px solid #ddd;
-      padding: 10px 0;
-    }
-    small {
-      color: #666;
-    }
-
-    /* Lock screen */
-    #lockScreen {
-      max-width: 380px;
-      margin: 80px auto;
-      padding: 20px;
-      background: #fff;
-      border-radius: 10px;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-      text-align: center;
-    }
-  </style>
+<style>
+body{font-family:Arial;background:#f4f6f8;padding:15px}
+h2{text-align:center}
+.form,.list,.summary{background:#fff;padding:15px;border-radius:8px;margin-bottom:15px}
+input,select{width:100%;padding:10px;margin-top:8px;border-radius:6px;border:1px solid #ccc}
+button{padding:10px;width:100%;margin-top:8px;border:none;border-radius:6px;font-size:14px;cursor:pointer}
+.add{background:#007bff;color:#fff}
+.pending{background:#dc3545;color:#fff}
+.paid{background:#28a745;color:#fff}
+.whatsapp{background:#25D366;color:#fff}
+.edit{background:#ffc107}
+.delete{background:#6c757d;color:#fff}
+.card{border-bottom:1px solid #ddd;padding:10px 0}
+small{color:#555}
+#lockScreen{max-width:380px;margin:80px auto;padding:20px;background:#fff;border-radius:10px;
+box-shadow:0 4px 10px rgba(0,0,0,0.1);text-align:center}
+</style>
 </head>
 <body>
 
-<!-- 🔒 PASSWORD LOCK SCREEN -->
+<!-- 🔒 PASSWORD SCREEN -->
 <div id="lockScreen">
   <h3>🔒 Enter Password</h3>
-  <input
-    type="password"
-    id="passwordInput"
-    placeholder="Enter password"
-  >
-  <button onclick="unlockApp()" class="add">Unlock</button>
-  <p id="errorText" style="color:red;"></p>
+  <input type="password" id="passwordInput" placeholder="Enter password">
+  <button class="add" onclick="unlockApp()">Unlock</button>
+  <p id="errorText" style="color:red"></p>
 </div>
 
-<!-- 🔓 MAIN APP -->
-<div id="appContent" style="display:none;">
+<!-- 🔓 APP CONTENT -->
+<div id="appContent" style="display:none">
 
 <h2>🚗 Vinoth Car Cleaning – Payments</h2>
 
+<div class="summary">
+<b>Total Pending Amount:</b> ₹<span id="totalPending">0</span>
+</div>
+
 <div class="form">
-  <h3>Add Customer</h3>
-  <input id="ownerName" placeholder="Owner Name">
-  <input id="mobile" placeholder="WhatsApp Number (91XXXXXXXXXX)">
-  <input id="month" placeholder="Month (Ex: March 2026)">
-  <input id="amount" type="number" value="600">
-  <select id="status">
-    <option value="pending">Pending</option>
-    <option value="paid">Paid</option>
-  </select>
-  <button class="add" onclick="addPayment()">Add</button>
+<h3>Add / Edit Customer</h3>
+
+<input id="ownerName" placeholder="Owner Name (optional)">
+<input id="flatNo" placeholder="Flat Number (optional)">
+<input id="carNo" placeholder="Car Number (optional)">
+<input id="mobile" placeholder="WhatsApp Number (91XXXXXXXXXX)">
+
+<select id="month">
+  <option value="">Select Month</option>
+  <option>January</option><option>February</option><option>March</option>
+  <option>April</option><option>May</option><option>June</option>
+  <option>July</option><option>August</option><option>September</option>
+  <option>October</option><option>November</option><option>December</option>
+</select>
+
+<select id="year">
+  <option value="">Select Year</option>
+  <option>2024</option>
+  <option>2025</option>
+  <option>2026</option>
+</select>
+
+<input id="amount" type="number" value="600">
+
+<select id="status">
+  <option value="pending">Pending</option>
+  <option value="paid">Paid</option>
+</select>
+
+<button class="add" onclick="addOrUpdate()">Save</button>
+</div>
+
+<div class="form">
+<h3>Filter</h3>
+<input id="filterText" placeholder="Filter by Flat or Car" oninput="render()">
 </div>
 
 <div class="list">
-  <h3>Paid / Pending List</h3>
-  <div id="paymentList"></div>
+<h3>Paid / Pending List</h3>
+<div id="paymentList"></div>
 </div>
 
 </div>
+
+<!-- 🔥 FIREBASE -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
 <script>
-  /* =====================
-     PASSWORD LOGIC
-     ===================== */
-  const ALLOWED_PASSWORDS = ["vinoth600", "clean@247"];
+/* =====================
+   🔐 PASSWORD CONFIG
+   ===================== */
+const ALLOWED_PASSWORDS = ["vinoth600", "clean@247"];
+const PASSWORD_VERSION = "v2"; // 🔁 CHANGE THIS when password changes
 
-  function unlockApp() {
-    const entered = document.getElementById("passwordInput").value;
-    if (ALLOWED_PASSWORDS.includes(entered)) {
-      localStorage.setItem("appUnlocked", "yes");
-      document.getElementById("lockScreen").style.display = "none";
-      document.getElementById("appContent").style.display = "block";
-    } else {
-      document.getElementById("errorText").innerText = "Wrong password";
-    }
+if (localStorage.getItem("appUnlocked") === PASSWORD_VERSION) {
+  lockScreen.style.display = "none";
+  appContent.style.display = "block";
+}
+
+function unlockApp() {
+  if (ALLOWED_PASSWORDS.includes(passwordInput.value)) {
+    localStorage.setItem("appUnlocked", PASSWORD_VERSION);
+    lockScreen.style.display = "none";
+    appContent.style.display = "block";
+  } else {
+    errorText.innerText = "Wrong password";
+  }
+}
+
+/* =====================
+   🔥 FIREBASE CONFIG
+   ===================== */
+const firebaseConfig = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_PROJECT.firebaseapp.com",
+  projectId: "YOUR_PROJECT_ID",
+  storageBucket: "YOUR_PROJECT.appspot.com",
+  messagingSenderId: "XXXX",
+  appId: "XXXX"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+const ref = db.collection("carPayments");
+
+/* =====================
+   📦 DATA
+   ===================== */
+let payments = [];
+let editId = null;
+
+/* ➕ ADD / ✏️ EDIT */
+async function addOrUpdate() {
+  const data = {
+    name: ownerName.value.trim(),
+    flat: flatNo.value.trim(),
+    car: carNo.value.trim(),
+    mobile: mobile.value.trim(),
+    month: month.value + " " + year.value,
+    amount: +amount.value,
+    status: status.value
+  };
+
+  if (
+    !data.mobile ||
+    !month.value ||
+    !year.value ||
+    (!data.flat && !data.car)
+  ) {
+    alert("Please enter Mobile and at least Flat or Car Number");
+    return;
   }
 
-  if (localStorage.getItem("appUnlocked") === "yes") {
-    document.getElementById("lockScreen").style.display = "none";
-    document.getElementById("appContent").style.display = "block";
+  if (editId) {
+    await ref.doc(editId).set(data);
+    editId = null;
+  } else {
+    await ref.add(data);
   }
 
-  /* =====================
-     PAYMENT LOGIC
-     ===================== */
-  let payments = JSON.parse(localStorage.getItem("payments")) || [];
+  resetForm();
+  loadData();
+}
 
-  function save() {
-    localStorage.setItem("payments", JSON.stringify(payments));
-    render();
+/* 🔁 RESET */
+function resetForm() {
+  ownerName.value = flatNo.value = carNo.value = mobile.value = "";
+  month.value = year.value = "";
+  amount.value = 600;
+  status.value = "pending";
+}
+
+/* 🟢 MARK PAID */
+function markPaid(id) {
+  ref.doc(id).update({ status: "paid" });
+}
+
+/* ✏️ EDIT */
+function editEntry(p) {
+  ownerName.value = p.name || "";
+  flatNo.value = p.flat || "";
+  carNo.value = p.car || "";
+  mobile.value = p.mobile;
+  const parts = p.month.split(" ");
+  month.value = parts[0];
+  year.value = parts[1];
+  amount.value = p.amount;
+  status.value = p.status;
+  editId = p.id;
+}
+
+/* 🗑️ DELETE */
+function deleteEntry(id) {
+  if (confirm("Delete this entry?")) {
+    ref.doc(id).delete();
   }
+}
 
-  function addPayment() {
-    const data = {
-      name: document.getElementById("ownerName").value,
-      mobile: document.getElementById("mobile").value,
-      month: document.getElementById("month").value,
-      amount: document.getElementById("amount").value,
-      status: document.getElementById("status").value
-    };
-
-    if (!data.name || !data.mobile || !data.month) {
-      alert("Please fill all details");
-      return;
-    }
-
-    payments.push(data);
-    save();
-
-    document.getElementById("ownerName").value = "";
-    document.getElementById("mobile").value = "";
-    document.getElementById("month").value = "";
-    document.getElementById("amount").value = 600;
-    document.getElementById("status").value = "pending";
-  }
-
-  function markPaid(i) {
-    payments[i].status = "paid";
-    save();
-  }
-
-  function sendReminder(i) {
-    const p = payments[i];
-    const msg =
-`Hi Sir/Madam,
+/* 📲 WHATSAPP */
+function sendReminder(p) {
+  const msg = `Hi Sir/Madam,
 Car cleaning charge of ₹${p.amount} for ${p.month} is pending.
 Kindly make the payment when convenient.
 
@@ -184,32 +211,55 @@ Thank you,
 Vinoth
 +91 7358461020
 Madha Kovil Street, Nolambur`;
+  window.open(
+    "https://wa.me/" + p.mobile + "?text=" + encodeURIComponent(msg),
+    "_blank"
+  );
+}
 
-    window.open(
-      "https://wa.me/" + p.mobile + "?text=" + encodeURIComponent(msg),
-      "_blank"
-    );
-  }
+/* 🖥️ LOAD & RENDER */
+function loadData() {
+  ref.onSnapshot(snap => {
+    payments = [];
+    snap.forEach(d => payments.push({ ...d.data(), id: d.id }));
+    render();
+  });
+}
 
-  function render() {
-    paymentList.innerHTML = "";
-    payments.forEach((p, i) => {
-      paymentList.innerHTML += `
-        <div class="card">
-          <b>${p.name}</b> – ${p.month}<br>
-          ₹${p.amount} • <small>${p.status.toUpperCase()}</small><br>
-          ${
-            p.status === "pending"
-              ? `<button class="pending" onclick="markPaid(${i})">Mark as Paid</button>
-                 <button class="whatsapp" onclick="sendReminder(${i})">Send Reminder</button>`
-              : `<button class="paid">Paid</button>`
-          }
-        </div>
-      `;
-    });
-  }
+function render() {
+  paymentList.innerHTML = "";
+  let total = 0;
+  const f = filterText.value.toLowerCase();
 
-  render();
+  payments.forEach(p => {
+    if (f && !(`${p.flat} ${p.car}`.toLowerCase().includes(f))) return;
+    if (p.status === "pending") total += p.amount;
+
+    paymentList.innerHTML += `
+      <div class="card">
+        <b>${p.name || "Owner"}</b>
+        ${p.flat ? `(Flat ${p.flat})` : ""}<br>
+        ${p.car ? `🚗 ${p.car}<br>` : ""}
+        ${p.month} – ₹${p.amount}
+        <small> • ${p.status.toUpperCase()}</small><br>
+
+        ${
+          p.status === "pending"
+            ? `<button class="pending" onclick="markPaid('${p.id}')">Mark Paid</button>
+               <button class="whatsapp" onclick='sendReminder(${JSON.stringify(p)})'>WhatsApp</button>`
+            : `<button class="paid">Paid</button>`
+        }
+
+        <button class="edit" onclick='editEntry(${JSON.stringify(p)})'>Edit</button>
+        <button class="delete" onclick="deleteEntry('${p.id}')">Delete</button>
+      </div>
+    `;
+  });
+
+  totalPending.innerText = total;
+}
+
+loadData();
 </script>
 
 </body>
