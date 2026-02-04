@@ -15,12 +15,12 @@ button{padding:10px;width:100%;margin-top:8px;border:none;border-radius:6px;font
 .showAll{background:#6c757d;color:#fff}
 .pending{background:#dc3545;color:#fff}
 .paid{background:#28a745;color:#fff}
-.whatsapp{background:#25D366;color:#fff}
 .edit{background:#ffc107}
 .delete{background:#6c757d;color:#fff}
 .card{border-bottom:1px solid #ddd;padding:10px 0}
 small{color:#555}
-#lockScreen{max-width:380px;margin:80px auto;padding:20px;background:#fff;border-radius:10px;box-shadow:0 4px 10px rgba(0,0,0,0.1);text-align:center}
+#lockScreen{max-width:380px;margin:80px auto;padding:20px;background:#fff;border-radius:10px;
+box-shadow:0 4px 10px rgba(0,0,0,0.1);text-align:center}
 </style>
 </head>
 <body>
@@ -44,10 +44,12 @@ small{color:#555}
 
 <div class="form">
 <h3>Add / Edit Customer</h3>
+
 <input id="ownerName" placeholder="Owner Name (optional)">
 <input id="flatNo" placeholder="Flat Number (optional)">
 <input id="carNo" placeholder="Car Number (optional)">
-<input id="mobile" placeholder="WhatsApp Number">
+<input id="mobile" placeholder="Mobile Number">
+
 <select id="month">
   <option value="">Select Month</option>
   <option>January</option><option>February</option><option>March</option>
@@ -55,15 +57,19 @@ small{color:#555}
   <option>July</option><option>August</option><option>September</option>
   <option>October</option><option>November</option><option>December</option>
 </select>
+
 <select id="year">
   <option value="">Select Year</option>
   <option>2024</option><option>2025</option><option>2026</option>
 </select>
+
 <input id="amount" type="number" value="600">
+
 <select id="status">
   <option value="pending">Pending</option>
   <option value="paid">Paid</option>
 </select>
+
 <button class="add" onclick="addOrUpdate()">Save</button>
 </div>
 
@@ -86,7 +92,8 @@ small{color:#555}
 <script>
 /* 🔐 PASSWORD */
 const ALLOWED_PASSWORDS=["vinoth600","clean@247"];
-const PASSWORD_VERSION="v6";
+const PASSWORD_VERSION="v7";
+
 if(localStorage.getItem("appUnlocked")===PASSWORD_VERSION){
   lockScreen.style.display="none";
   appContent.style.display="block";
@@ -99,7 +106,7 @@ function unlockApp(){
   } else errorText.innerText="Wrong password";
 }
 
-/* 🔥 FIREBASE CONFIG */
+/* 🔥 FIREBASE CONFIG (REPLACE VALUES) */
 const firebaseConfig={
   apiKey:"YOUR_API_KEY",
   authDomain:"YOUR_PROJECT.firebaseapp.com",
@@ -114,31 +121,32 @@ let payments=[];
 let editId=null;
 let viewMode="all";
 
-/* ADD / EDIT */
+/* ➕ ADD / ✏️ EDIT */
 async function addOrUpdate(){
   const data={
-    name:ownerName.value.trim(),
-    flat:flatNo.value.trim(),
-    car:carNo.value.trim(),
-    mobile:mobile.value.trim(),
-    month:month.value+" "+year.value,
-    amount:Number(amount.value),
-    status:status.value
+    name: ownerName.value.trim(),
+    flat: flatNo.value.trim(),
+    car: carNo.value.trim(),
+    mobile: mobile.value.replace(/\s+/g,""),
+    month: month.value + " " + year.value,
+    amount: Number(amount.value),
+    status: status.value
   };
 
-  if(!data.mobile||!month.value||!year.value||(!data.flat&&!data.car)){
-    alert("Enter Mobile and Flat or Car");
+  if(
+    data.mobile.length < 10 ||
+    !month.value ||
+    !year.value ||
+    (!data.flat && !data.car)
+  ){
+    alert("Please enter Mobile Number and Flat or Car");
     return;
   }
 
-  resetForm();        // ✅ clear immediately
-  editId && (editId=null);
+  resetForm();      // clear immediately
+  editId = null;
 
-  if(editId){
-    await ref.doc(editId).set(data);
-  } else {
-    await ref.add(data);
-  }
+  await ref.add(data);
 }
 
 /* RESET */
@@ -155,32 +163,11 @@ function setView(mode){
   render();
 }
 
-/* MARK PAID */
-function markPaid(id){ ref.doc(id).update({status:"paid"}); }
-
-/* EDIT */
-function editEntry(p){
-  ownerName.value=p.name||"";
-  flatNo.value=p.flat||"";
-  carNo.value=p.car||"";
-  mobile.value=p.mobile;
-  const m=p.month.split(" ");
-  month.value=m[0]; year.value=m[1];
-  amount.value=p.amount;
-  status.value=p.status;
-  editId=p.id;
-}
-
-/* DELETE */
-function deleteEntry(id){
-  if(confirm("Delete?")) ref.doc(id).delete();
-}
-
 /* LOAD */
 ref.onSnapshot(snap=>{
   payments=[];
   snap.forEach(d=>payments.push({...d.data(),id:d.id}));
-  render();   // 🔑 only render here
+  render();
 });
 
 /* RENDER */
@@ -200,14 +187,7 @@ function render(){
       📞 ${p.mobile}<br>
       🗓️ ${p.month}<br>
       💰 ₹${p.amount}
-      <small> • ${p.status.toUpperCase()}</small><br>
-
-      ${p.status==="pending"
-        ? `<button class="pending" onclick="markPaid('${p.id}')">Mark Paid</button>`
-        : `<button class="paid">Paid</button>`}
-
-      <button class="edit" onclick='editEntry(${JSON.stringify(p)})'>Edit</button>
-      <button class="delete" onclick="deleteEntry('${p.id}')">Delete</button>
+      <small> • ${p.status.toUpperCase()}</small>
     </div>`;
   });
 
