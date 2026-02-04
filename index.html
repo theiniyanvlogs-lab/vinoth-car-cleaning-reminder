@@ -78,7 +78,7 @@ box-shadow:0 4px 10px rgba(0,0,0,0.1);text-align:center}
 <!-- 🔍 SEARCH -->
 <div class="form">
 <h3>Search</h3>
-<input id="filterText" placeholder="Enter Flat or Car Number (Ex: G202)">
+<input id="filterText" placeholder="Enter Flat or Car Number (Ex: B302)">
 <button class="add" onclick="applySearch()">Search</button>
 <button class="delete" onclick="clearSearch()">Clear</button>
 </div>
@@ -95,30 +95,23 @@ box-shadow:0 4px 10px rgba(0,0,0,0.1);text-align:center}
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
 <script>
-/* =====================
-   🔐 PASSWORD CONFIG
-   ===================== */
+/* 🔐 PASSWORD */
 const ALLOWED_PASSWORDS=["vinoth600","clean@247"];
-const PASSWORD_VERSION="v3"; // 🔁 change when password changes
+const PASSWORD_VERSION="v4";
 
 if(localStorage.getItem("appUnlocked")===PASSWORD_VERSION){
   lockScreen.style.display="none";
   appContent.style.display="block";
 }
-
 function unlockApp(){
   if(ALLOWED_PASSWORDS.includes(passwordInput.value)){
     localStorage.setItem("appUnlocked",PASSWORD_VERSION);
     lockScreen.style.display="none";
     appContent.style.display="block";
-  } else {
-    errorText.innerText="Wrong password";
-  }
+  } else errorText.innerText="Wrong password";
 }
 
-/* =====================
-   🔥 FIREBASE CONFIG
-   ===================== */
+/* 🔥 FIREBASE CONFIG (REPLACE VALUES) */
 const firebaseConfig={
   apiKey:"YOUR_API_KEY",
   authDomain:"YOUR_PROJECT.firebaseapp.com",
@@ -131,9 +124,7 @@ firebase.initializeApp(firebaseConfig);
 const db=firebase.firestore();
 const ref=db.collection("carPayments");
 
-/* =====================
-   📦 DATA
-   ===================== */
+/* 📦 DATA */
 let payments=[];
 let editId=null;
 let activeFilter="";
@@ -146,16 +137,11 @@ async function addOrUpdate(){
     car:carNo.value.trim(),
     mobile:mobile.value.trim(),
     month:month.value+" "+year.value,
-    amount:+amount.value,
+    amount:Number(amount.value),
     status:status.value
   };
 
-  if(
-    !data.mobile ||
-    !month.value ||
-    !year.value ||
-    (!data.flat && !data.car)
-  ){
+  if(!data.mobile || !month.value || !year.value || (!data.flat && !data.car)){
     alert("Please enter Mobile and at least Flat or Car Number");
     return;
   }
@@ -166,12 +152,10 @@ async function addOrUpdate(){
   } else {
     await ref.add(data);
   }
-
-  resetForm();
-  loadData();
+  resetForm(); // ✅ clear for next entry
 }
 
-/* 🔁 RESET */
+/* 🔁 RESET FORM */
 function resetForm(){
   ownerName.value=flatNo.value=carNo.value=mobile.value="";
   month.value=year.value="";
@@ -190,9 +174,8 @@ function editEntry(p){
   flatNo.value=p.flat||"";
   carNo.value=p.car||"";
   mobile.value=p.mobile;
-  const parts=p.month.split(" ");
-  month.value=parts[0];
-  year.value=parts[1];
+  const m=p.month.split(" ");
+  month.value=m[0]; year.value=m[1];
   amount.value=p.amount;
   status.value=p.status;
   editId=p.id;
@@ -215,10 +198,7 @@ Thank you,
 Vinoth
 +91 7358461020
 Madha Kovil Street, Nolambur`;
-  window.open(
-    "https://wa.me/"+p.mobile+"?text="+encodeURIComponent(msg),
-    "_blank"
-  );
+  window.open("https://wa.me/"+p.mobile+"?text="+encodeURIComponent(msg),"_blank");
 }
 
 /* 🔍 SEARCH */
@@ -227,20 +207,23 @@ function applySearch(){
   render();
 }
 function clearSearch(){
-  document.getElementById("filterText").value="";
+  filterText.value="";
   activeFilter="";
   render();
 }
 
-/* 🖥️ LOAD & RENDER */
+/* 🔄 LOAD FROM FIRESTORE (ONLY PLACE RENDER IS CALLED) */
 function loadData(){
-  ref.onSnapshot(snap=>{
+  ref.onSnapshot(snapshot=>{
     payments=[];
-    snap.forEach(d=>payments.push({...d.data(),id:d.id}));
+    snapshot.forEach(doc=>{
+      payments.push({...doc.data(),id:doc.id});
+    });
     render();
   });
 }
 
+/* 🖥️ RENDER */
 function render(){
   paymentList.innerHTML="";
   let total=0;
@@ -253,7 +236,7 @@ function render(){
 
     if(f && !(flat.includes(f)||car.includes(f))) return;
 
-    if(p.status==="pending") total+=p.amount;
+    if(p.status==="pending") total+=Number(p.amount);
 
     paymentList.innerHTML+=`
     <div class="card">
@@ -263,12 +246,10 @@ function render(){
       ${p.month} – ₹${p.amount}
       <small> • ${p.status.toUpperCase()}</small><br>
 
-      ${
-        p.status==="pending"
+      ${p.status==="pending"
         ? `<button class="pending" onclick="markPaid('${p.id}')">Mark Paid</button>
            <button class="whatsapp" onclick='sendReminder(${JSON.stringify(p)})'>WhatsApp</button>`
-        : `<button class="paid">Paid</button>`
-      }
+        : `<button class="paid">Paid</button>`}
 
       <button class="edit" onclick='editEntry(${JSON.stringify(p)})'>Edit</button>
       <button class="delete" onclick="deleteEntry('${p.id}')">Delete</button>
@@ -278,6 +259,7 @@ function render(){
   totalPending.innerText=total;
 }
 
+/* 🚀 START */
 loadData();
 </script>
 
