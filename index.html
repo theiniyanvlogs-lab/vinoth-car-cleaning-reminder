@@ -23,7 +23,7 @@ button{border:none;font-size:15px;cursor:pointer}
 <div id="lockScreen">
   <h3>🔒 Enter Password</h3>
   <input type="password" id="passwordInput">
-  <button class="save" onclick="unlock()">Unlock</button>
+  <button type="button" class="save" onclick="unlock()">Unlock</button>
   <p id="err" style="color:red"></p>
 </div>
 
@@ -60,11 +60,14 @@ button{border:none;font-size:15px;cursor:pointer}
 <option value="paid">Paid</option>
 </select>
 
-<button class="save" onclick="saveData()">Save</button>
+<!-- ✅ FIXED BUTTON -->
+<button type="button" class="save" onclick="saveData()">Save</button>
 </div>
 
 <div class="box">
-<button class="export" onclick="exportPendingPDF()">Export Pending (PDF)</button>
+<button type="button" class="export" onclick="exportPendingPDF()">
+Export Pending (PDF)
+</button>
 </div>
 
 </div>
@@ -79,13 +82,21 @@ button{border:none;font-size:15px;cursor:pointer}
 <script>
 /* 🔐 PASSWORD */
 const PASS=["vinoth600","clean@247"];
-const VER="v10";
-if(localStorage.getItem("unlock")==VER){lockScreen.style.display="none";app.style.display="block";}
+const VER="v11";
+
+if(localStorage.getItem("unlock")==VER){
+  lockScreen.style.display="none";
+  app.style.display="block";
+}
+
 function unlock(){
   if(PASS.includes(passwordInput.value)){
     localStorage.setItem("unlock",VER);
-    lockScreen.style.display="none";app.style.display="block";
-  } else err.innerText="Wrong password";
+    lockScreen.style.display="none";
+    app.style.display="block";
+  } else {
+    err.innerText="Wrong password";
+  }
 }
 
 /* 🔥 FIREBASE */
@@ -94,15 +105,22 @@ firebase.initializeApp({
   authDomain:"vinoth-car-cleaning-reminder.firebaseapp.com",
   projectId:"vinoth-car-cleaning-reminder"
 });
+
 const db=firebase.firestore();
 const ref=db.collection("carPayments");
 
-/* SAVE */
+/* ✅ SAVE WORKS NOW */
 async function saveData(){
-  if(mobile.value.length<10 || (!flat.value && !car.value) || !month.value || !year.value){
+  if(
+    mobile.value.length < 10 ||
+    (!flat.value && !car.value) ||
+    !month.value ||
+    !year.value
+  ){
     alert("Mobile + Flat or Car + Month + Year required");
     return;
   }
+
   await ref.add({
     name:name.value.trim(),
     flat:flat.value.trim(),
@@ -112,18 +130,23 @@ async function saveData(){
     amount:Number(amount.value),
     status:status.value
   });
+
+  // clear for next entry
   name.value=flat.value=car.value=mobile.value="";
   month.value=year.value="";
   amount.value=600;
   status.value="pending";
+
+  alert("Saved successfully ✅");
 }
 
-/* ✅ EXPORT PDF (LIVE FIRESTORE QUERY) */
+/* 📄 EXPORT PENDING PDF (LIVE QUERY) */
 async function exportPendingPDF(){
   const snap = await ref.where("status","==","pending").get();
   const { jsPDF } = window.jspdf;
   const pdf = new jsPDF();
   let y=20;
+
   pdf.text("Vinoth Car Cleaning – Pending Payments",10,10);
 
   if(snap.empty){
@@ -140,6 +163,7 @@ async function exportPendingPDF(){
       if(y>280){pdf.addPage();y=20;}
     });
   }
+
   pdf.save("Pending_Payments.pdf");
 }
 </script>
