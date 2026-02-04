@@ -16,11 +16,7 @@ input,select,button{
   border-radius:6px;
   border:1px solid #ccc
 }
-button{
-  border:none;
-  font-size:15px;
-  cursor:pointer
-}
+button{border:none;font-size:15px;cursor:pointer}
 .save{background:#007bff;color:#fff}
 .export{background:#198754;color:#fff}
 #lockScreen{
@@ -36,7 +32,7 @@ button{
 
 <body>
 
-<!-- 🔒 PASSWORD SCREEN -->
+<!-- 🔒 PASSWORD -->
 <div id="lockScreen">
   <h3>🔒 Enter Password</h3>
   <input type="password" id="passwordInput">
@@ -88,17 +84,17 @@ Export Pending (PDF)
 
 </div>
 
-<!-- 🔥 Firebase -->
+<!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
-<!-- 📄 PDF -->
+<!-- PDF -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
 <script>
 /* 🔐 PASSWORD */
 const PASSWORDS = ["vinoth600","clean@247"];
-const VERSION = "v12";
+const VERSION = "v13";
 
 if(localStorage.getItem("unlock") === VERSION){
   lockScreen.style.display="none";
@@ -111,21 +107,21 @@ function unlock(){
     lockScreen.style.display="none";
     app.style.display="block";
   } else {
-    err.innerText = "Wrong password";
+    err.innerText="Wrong password";
   }
 }
 
-/* 🔥 FIREBASE INIT */
+/* 🔥 FIREBASE */
 firebase.initializeApp({
-  apiKey: "AIzaSyCWbIwSjYSHrMYvvKK8HByqcDy6wUj7pu8",
-  authDomain: "vinoth-car-cleaning-reminder.firebaseapp.com",
-  projectId: "vinoth-car-cleaning-reminder"
+  apiKey:"AIzaSyCWbIwSjYSHrMYvvKK8HByqcDy6wUj7pu8",
+  authDomain:"vinoth-car-cleaning-reminder.firebaseapp.com",
+  projectId:"vinoth-car-cleaning-reminder"
 });
 
 const db = firebase.firestore();
 const ref = db.collection("carPayments");
 
-/* 💾 SAVE DATA (FIXED) */
+/* 💾 SAVE (FINAL FIXED) */
 async function saveData(){
   if(
     mobile.value.trim().length < 10 ||
@@ -146,28 +142,28 @@ async function saveData(){
       month: month.value + " " + year.value,
       amount: Number(amount.value),
       status: status.value,
-      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      createdAt: new Date().toISOString() // ✅ SAFE
     });
 
-    // ✅ CLEAR FIELDS AFTER SAVE
-    name.value = "";
-    flat.value = "";
-    car.value = "";
-    mobile.value = "";
-    month.value = "";
-    year.value = "";
-    amount.value = 600;
-    status.value = "pending";
+    // Clear fields
+    name.value="";
+    flat.value="";
+    car.value="";
+    mobile.value="";
+    month.value="";
+    year.value="";
+    amount.value=600;
+    status.value="pending";
 
     alert("Saved successfully ✅");
 
   } catch(e){
-    console.error("Firebase error:", e);
+    console.error(e);
     alert("Save failed ❌");
   }
 }
 
-/* 📄 EXPORT PENDING PDF (LIVE FROM FIRESTORE) */
+/* 📄 EXPORT PDF */
 async function exportPendingPDF(){
   const snap = await ref.where("status","==","pending").get();
   const { jsPDF } = window.jspdf;
@@ -175,24 +171,19 @@ async function exportPendingPDF(){
 
   pdf.text("Vinoth Car Cleaning – Pending Payments",10,10);
 
-  let y = 20;
-  let i = 1;
+  let y=20,i=1;
 
   if(snap.empty){
     pdf.text("No pending records available.",10,y);
   } else {
     snap.forEach(doc=>{
-      const p = doc.data();
+      const p=doc.data();
       pdf.text(
-        `${i}. ${p.name || "Owner"} | Flat:${p.flat || "-"} | Car:${p.car || "-"} | Mobile:${p.mobile} | ${p.month} | ₹${p.amount}`,
+        `${i}. ${p.name||"Owner"} | Flat:${p.flat||"-"} | Car:${p.car||"-"} | Mobile:${p.mobile} | ${p.month} | ₹${p.amount}`,
         10,y
       );
-      y += 8;
-      i++;
-      if(y > 280){
-        pdf.addPage();
-        y = 20;
-      }
+      y+=8; i++;
+      if(y>280){pdf.addPage();y=20;}
     });
   }
 
