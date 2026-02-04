@@ -8,10 +8,12 @@
 <style>
 body{font-family:Arial;background:#f4f6f8;padding:15px}
 h2{text-align:center}
-.form,.list,.summary{background:#fff;padding:15px;border-radius:8px;margin-bottom:15px}
+.form,.list,.summary,.actions{background:#fff;padding:15px;border-radius:8px;margin-bottom:15px}
 input,select{width:100%;padding:10px;margin-top:8px;border-radius:6px;border:1px solid #ccc}
 button{padding:10px;width:100%;margin-top:8px;border:none;border-radius:6px;font-size:14px;cursor:pointer}
 .add{background:#007bff;color:#fff}
+.pendingBtn{background:#ff9800;color:#fff}
+.showAll{background:#6c757d;color:#fff}
 .pending{background:#dc3545;color:#fff}
 .paid{background:#28a745;color:#fff}
 .whatsapp{background:#25D366;color:#fff}
@@ -75,16 +77,14 @@ box-shadow:0 4px 10px rgba(0,0,0,0.1);text-align:center}
 <button class="add" onclick="addOrUpdate()">Save</button>
 </div>
 
-<!-- 🔍 SEARCH -->
-<div class="form">
-<h3>Search</h3>
-<input id="filterText" placeholder="Enter Flat or Car Number (Ex: B302)">
-<button class="add" onclick="applySearch()">Search</button>
-<button class="delete" onclick="clearSearch()">Clear</button>
+<!-- 🔘 ACTION BUTTONS -->
+<div class="actions">
+  <button class="pendingBtn" onclick="showPending()">Show Pending</button>
+  <button class="showAll" onclick="showAll()">Show All</button>
 </div>
 
 <div class="list">
-<h3>Paid / Pending List</h3>
+<h3>Payments List</h3>
 <div id="paymentList"></div>
 </div>
 
@@ -97,7 +97,7 @@ box-shadow:0 4px 10px rgba(0,0,0,0.1);text-align:center}
 <script>
 /* 🔐 PASSWORD */
 const ALLOWED_PASSWORDS=["vinoth600","clean@247"];
-const PASSWORD_VERSION="v4";
+const PASSWORD_VERSION="v5";
 
 if(localStorage.getItem("appUnlocked")===PASSWORD_VERSION){
   lockScreen.style.display="none";
@@ -111,7 +111,7 @@ function unlockApp(){
   } else errorText.innerText="Wrong password";
 }
 
-/* 🔥 FIREBASE CONFIG (REPLACE VALUES) */
+/* 🔥 FIREBASE CONFIG – REPLACE */
 const firebaseConfig={
   apiKey:"YOUR_API_KEY",
   authDomain:"YOUR_PROJECT.firebaseapp.com",
@@ -127,7 +127,7 @@ const ref=db.collection("carPayments");
 /* 📦 DATA */
 let payments=[];
 let editId=null;
-let activeFilter="";
+let viewMode="all"; // all | pending
 
 /* ➕ ADD / ✏️ EDIT */
 async function addOrUpdate(){
@@ -152,10 +152,10 @@ async function addOrUpdate(){
   } else {
     await ref.add(data);
   }
-  resetForm(); // ✅ clear for next entry
+  resetForm();
 }
 
-/* 🔁 RESET FORM */
+/* 🔁 RESET */
 function resetForm(){
   ownerName.value=flatNo.value=carNo.value=mobile.value="";
   month.value=year.value="";
@@ -163,10 +163,12 @@ function resetForm(){
   status.value="pending";
 }
 
+/* 🔘 VIEW CONTROLS */
+function showPending(){ viewMode="pending"; render(); }
+function showAll(){ viewMode="all"; render(); }
+
 /* 🟢 MARK PAID */
-function markPaid(id){
-  ref.doc(id).update({status:"paid"});
-}
+function markPaid(id){ ref.doc(id).update({status:"paid"}); }
 
 /* ✏️ EDIT */
 function editEntry(p){
@@ -183,9 +185,7 @@ function editEntry(p){
 
 /* 🗑️ DELETE */
 function deleteEntry(id){
-  if(confirm("Delete this entry?")){
-    ref.doc(id).delete();
-  }
+  if(confirm("Delete this entry?")) ref.doc(id).delete();
 }
 
 /* 📲 WHATSAPP */
@@ -201,24 +201,11 @@ Madha Kovil Street, Nolambur`;
   window.open("https://wa.me/"+p.mobile+"?text="+encodeURIComponent(msg),"_blank");
 }
 
-/* 🔍 SEARCH */
-function applySearch(){
-  activeFilter=document.getElementById("filterText").value;
-  render();
-}
-function clearSearch(){
-  filterText.value="";
-  activeFilter="";
-  render();
-}
-
-/* 🔄 LOAD FROM FIRESTORE (ONLY PLACE RENDER IS CALLED) */
+/* 🔄 LOAD */
 function loadData(){
-  ref.onSnapshot(snapshot=>{
+  ref.onSnapshot(snap=>{
     payments=[];
-    snapshot.forEach(doc=>{
-      payments.push({...doc.data(),id:doc.id});
-    });
+    snap.forEach(d=>payments.push({...d.data(),id:d.id}));
     render();
   });
 }
@@ -228,13 +215,8 @@ function render(){
   paymentList.innerHTML="";
   let total=0;
 
-  const f=(activeFilter||"").toLowerCase().replace(/[\s-]/g,"");
-
   payments.forEach(p=>{
-    const flat=(p.flat||"").toLowerCase().replace(/[\s-]/g,"");
-    const car=(p.car||"").toLowerCase().replace(/[\s-]/g,"");
-
-    if(f && !(flat.includes(f)||car.includes(f))) return;
+    if(viewMode==="pending" && p.status!=="pending") return;
 
     if(p.status==="pending") total+=Number(p.amount);
 
@@ -243,13 +225,17 @@ function render(){
       <b>${p.name||"Owner"}</b>
       ${p.flat?`(Flat ${p.flat})`:""}<br>
       ${p.car?`🚗 ${p.car}<br>`:""}
-      ${p.month} – ₹${p.amount}
+      📞 ${p.mobile}<br>
+      🗓️ ${p.month}<br>
+      💰 ₹${p.amount}
       <small> • ${p.status.toUpperCase()}</small><br>
 
-      ${p.status==="pending"
+      ${
+        p.status==="pending"
         ? `<button class="pending" onclick="markPaid('${p.id}')">Mark Paid</button>
            <button class="whatsapp" onclick='sendReminder(${JSON.stringify(p)})'>WhatsApp</button>`
-        : `<button class="paid">Paid</button>`}
+        : `<button class="paid">Paid</button>`
+      }
 
       <button class="edit" onclick='editEntry(${JSON.stringify(p)})'>Edit</button>
       <button class="delete" onclick="deleteEntry('${p.id}')">Delete</button>
