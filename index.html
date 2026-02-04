@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Vinoth Car Cleaning – Paid / Pending</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f6f8;
+      padding: 15px;
+    }
+    h2 {
+      text-align: center;
+    }
+    .form, .list {
+      background: #fff;
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+    }
+    input, select {
+      width: 100%;
+      padding: 10px;
+      margin-top: 8px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+    }
+    button {
+      padding: 10px;
+      width: 100%;
+      margin-top: 10px;
+      border: none;
+      border-radius: 6px;
+      font-size: 15px;
+      cursor: pointer;
+    }
+    .add {
+      background: #007bff;
+      color: white;
+    }
+    .paid {
+      background: #28a745;
+      color: white;
+    }
+    .pending {
+      background: #dc3545;
+      color: white;
+    }
+    .whatsapp {
+      background: #25D366;
+      color: white;
+      margin-top: 5px;
+    }
+    .card {
+      border-bottom: 1px solid #ddd;
+      padding: 10px 0;
+    }
+    small {
+      color: #666;
+    }
+  </style>
+</head>
+<body>
+
+<h2>🚗 Vinoth Car Cleaning – Payments</h2>
+
+<div class="form">
+  <h3>Add Customer</h3>
+  <input id="name" placeholder="Owner Name">
+  <input id="mobile" placeholder="WhatsApp Number (91XXXXXXXXXX)">
+  <input id="month" placeholder="Month (Ex: March 2026)">
+  <input id="amount" type="number" value="600">
+  <select id="status">
+    <option value="pending">Pending</option>
+    <option value="paid">Paid</option>
+  </select>
+  <button class="add" onclick="addPayment()">Add</button>
+</div>
+
+<div class="list">
+  <h3>Paid / Pending List</h3>
+  <div id="paymentList"></div>
+</div>
+
+<script>
+  let payments = JSON.parse(localStorage.getItem("payments")) || [];
+
+  function save() {
+    localStorage.setItem("payments", JSON.stringify(payments));
+    render();
+  }
+
+  function addPayment() {
+    const data = {
+      name: name.value,
+      mobile: mobile.value,
+      month: month.value,
+      amount: amount.value,
+      status: status.value
+    };
+    if (!data.name || !data.mobile || !data.month) {
+      alert("Please fill all details");
+      return;
+    }
+    payments.push(data);
+    save();
+    name.value = mobile.value = month.value = "";
+    amount.value = 600;
+    status.value = "pending";
+  }
+
+  function markPaid(i) {
+    payments[i].status = "paid";
+    save();
+  }
+
+  function sendReminder(i) {
+    const p = payments[i];
+    const msg =
+`Hi Sir/Madam,
+Car cleaning charge of ₹${p.amount} for ${p.month} is pending.
+Kindly make the payment when convenient.
+
+Thank you,
+Vinoth
++91 7358461020
+Madha Kovil Street, Nolambur`;
+
+    window.open(
+      "https://wa.me/" + p.mobile + "?text=" + encodeURIComponent(msg),
+      "_blank"
+    );
+  }
+
+  function render() {
+    paymentList.innerHTML = "";
+    payments.forEach((p, i) => {
+      paymentList.innerHTML += `
+        <div class="card">
+          <b>${p.name}</b> – ${p.month}<br>
+          ₹${p.amount} • <small>${p.status.toUpperCase()}</small><br>
+          ${
+            p.status === "pending"
+              ? `<button class="pending" onclick="markPaid(${i})">Mark as Paid</button>
+                 <button class="whatsapp" onclick="sendReminder(${i})">Send Reminder</button>`
+              : `<button class="paid">Paid</button>`
+          }
+        </div>
+      `;
+    });
+  }
+
+  render();
+</script>
+
+</body>
+</html>
