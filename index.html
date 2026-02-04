@@ -2,134 +2,145 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Vinoth Car Cleaning – Pending Payments</title>
+<title>Vinoth Car Cleaning – Payments</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <style>
 body{font-family:Arial;background:#f4f6f8;padding:15px}
 h2{text-align:center}
-.form,.actions{background:#fff;padding:15px;border-radius:8px;margin-bottom:15px}
-input,select{width:100%;padding:10px;margin-top:8px;border-radius:6px;border:1px solid #ccc}
-button{padding:12px;width:100%;margin-top:10px;border:none;border-radius:6px;font-size:15px;cursor:pointer}
-.add{background:#007bff;color:#fff}
-.pdfBtn{background:#198754;color:#fff}
+.box{background:#fff;padding:15px;border-radius:8px;margin-bottom:15px}
+input,select,button{width:100%;padding:10px;margin-top:8px;border-radius:6px;border:1px solid #ccc}
+button{border:none;font-size:15px;cursor:pointer}
+.save{background:#007bff;color:#fff}
+.export{background:#198754;color:#fff}
+#lockScreen{max-width:360px;margin:80px auto;background:#fff;padding:20px;border-radius:10px;text-align:center}
 </style>
 </head>
+
 <body>
 
-<h2>🚗 Vinoth Car Cleaning – Pending Payments</h2>
+<!-- 🔒 PASSWORD -->
+<div id="lockScreen">
+  <h3>🔒 Enter Password</h3>
+  <input type="password" id="passwordInput">
+  <button class="save" onclick="unlock()">Unlock</button>
+  <p id="err" style="color:red"></p>
+</div>
 
-<div class="form">
+<!-- 🔓 APP -->
+<div id="app" style="display:none">
+
+<h2>🚗 Vinoth Car Cleaning – Payments</h2>
+
+<div class="box">
 <h3>Add Customer</h3>
 
-<input id="ownerName" placeholder="Owner Name (optional)">
-<input id="flatNo" placeholder="Flat Number (optional)">
-<input id="carNo" placeholder="Car Number (optional)">
+<input id="name" placeholder="Owner Name (optional)">
+<input id="flat" placeholder="Flat Number (optional)">
+<input id="car" placeholder="Car Number (optional)">
 <input id="mobile" placeholder="Mobile Number">
 
 <select id="month">
-  <option value="">Select Month</option>
-  <option>January</option><option>February</option><option>March</option>
-  <option>April</option><option>May</option><option>June</option>
-  <option>July</option><option>August</option><option>September</option>
-  <option>October</option><option>November</option><option>December</option>
+<option value="">Select Month</option>
+<option>January</option><option>February</option><option>March</option>
+<option>April</option><option>May</option><option>June</option>
+<option>July</option><option>August</option><option>September</option>
+<option>October</option><option>November</option><option>December</option>
 </select>
 
 <select id="year">
-  <option value="">Select Year</option>
-  <option>2024</option><option>2025</option><option>2026</option>
+<option value="">Select Year</option>
+<option>2024</option><option>2025</option><option>2026</option>
 </select>
 
 <input id="amount" type="number" value="600">
 
 <select id="status">
-  <option value="pending">Pending</option>
-  <option value="paid">Paid</option>
+<option value="pending">Pending</option>
+<option value="paid">Paid</option>
 </select>
 
-<button class="add" onclick="savePayment()">Save</button>
+<button class="save" onclick="saveData()">Save</button>
 </div>
 
-<div class="actions">
-  <button class="pdfBtn" onclick="exportPendingPDF()">Export Pending (PDF)</button>
+<div class="box">
+<button class="export" onclick="exportPendingPDF()">Export Pending (PDF)</button>
+</div>
+
 </div>
 
 <!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
-<!-- jsPDF -->
+<!-- PDF -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
 <script>
-/* 🔥 FIREBASE INIT */
+/* 🔐 PASSWORD */
+const PASS=["vinoth600","clean@247"];
+const VER="v10";
+if(localStorage.getItem("unlock")==VER){lockScreen.style.display="none";app.style.display="block";}
+function unlock(){
+  if(PASS.includes(passwordInput.value)){
+    localStorage.setItem("unlock",VER);
+    lockScreen.style.display="none";app.style.display="block";
+  } else err.innerText="Wrong password";
+}
+
+/* 🔥 FIREBASE */
 firebase.initializeApp({
   apiKey:"AIzaSyCWbIwSjYSHrMYvvKK8HByqcDy6wUj7pu8",
   authDomain:"vinoth-car-cleaning-reminder.firebaseapp.com",
   projectId:"vinoth-car-cleaning-reminder"
 });
-const db = firebase.firestore();
-const ref = db.collection("carPayments");
+const db=firebase.firestore();
+const ref=db.collection("carPayments");
 
 /* SAVE */
-function savePayment(){
-  const data = {
-    name: ownerName.value.trim(),
-    flat: flatNo.value.trim(),
-    car: carNo.value.trim(),
-    mobile: mobile.value.replace(/\s+/g,""),
-    month: month.value + " " + year.value,
-    amount: Number(amount.value),
-    status: status.value.toLowerCase() // 🔑 FORCE LOWERCASE
-  };
-
-  if(data.mobile.length < 10 || !month.value || !year.value || (!data.flat && !data.car)){
-    alert("Enter Mobile + Flat or Car");
+async function saveData(){
+  if(mobile.value.length<10 || (!flat.value && !car.value) || !month.value || !year.value){
+    alert("Mobile + Flat or Car + Month + Year required");
     return;
   }
-
-  ref.add(data);
-  resetForm();
-}
-
-function resetForm(){
-  ownerName.value=flatNo.value=carNo.value=mobile.value="";
+  await ref.add({
+    name:name.value.trim(),
+    flat:flat.value.trim(),
+    car:car.value.trim(),
+    mobile:mobile.value.trim(),
+    month:month.value+" "+year.value,
+    amount:Number(amount.value),
+    status:status.value
+  });
+  name.value=flat.value=car.value=mobile.value="";
   month.value=year.value="";
   amount.value=600;
   status.value="pending";
 }
 
-/* 📄 EXPORT PDF – DIRECT FROM FIRESTORE */
+/* ✅ EXPORT PDF (LIVE FIRESTORE QUERY) */
 async function exportPendingPDF(){
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF();
-
   const snap = await ref.where("status","==","pending").get();
-
-  doc.setFontSize(14);
-  doc.text("Vinoth Car Cleaning – Pending Payments", 10, 10);
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF();
+  let y=20;
+  pdf.text("Vinoth Car Cleaning – Pending Payments",10,10);
 
   if(snap.empty){
-    doc.setFontSize(12);
-    doc.text("No pending records available.", 10, 25);
+    pdf.text("No pending records available.",10,y);
   } else {
-    let y = 25;
-    let i = 1;
-    snap.forEach(docu=>{
-      const p = docu.data();
-      doc.setFontSize(10);
-      doc.text(
-        `${i}. ${p.name || "Owner"} | Flat: ${p.flat||"-"} | Car: ${p.car||"-"} | Mobile: ${p.mobile} | ${p.month} | ₹${p.amount}`,
-        10,
-        y
+    let i=1;
+    snap.forEach(d=>{
+      const p=d.data();
+      pdf.text(
+        `${i}. ${p.name||"Owner"} | Flat:${p.flat||"-"} | Car:${p.car||"-"} | Mobile:${p.mobile} | ${p.month} | ₹${p.amount}`,
+        10,y
       );
-      y += 8;
-      i++;
-      if(y > 280){ doc.addPage(); y = 10; }
+      y+=8; i++;
+      if(y>280){pdf.addPage();y=20;}
     });
   }
-
-  doc.save("Pending_Payments.pdf");
+  pdf.save("Pending_Payments.pdf");
 }
 </script>
 
