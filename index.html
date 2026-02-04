@@ -9,8 +9,18 @@
 body{font-family:Arial;background:#f4f6f8;padding:15px}
 h2{text-align:center}
 .box{background:#fff;padding:15px;border-radius:8px;margin-bottom:15px}
-input,select,button{width:100%;padding:10px;margin-top:8px;border-radius:6px;border:1px solid #ccc}
-button{border:none;font-size:15px;cursor:pointer}
+input,select,button{
+  width:100%;
+  padding:10px;
+  margin-top:8px;
+  border-radius:6px;
+  border:1px solid #ccc
+}
+button{
+  border:none;
+  font-size:15px;
+  cursor:pointer
+}
 .save{background:#007bff;color:#fff}
 .export{background:#198754;color:#fff}
 #lockScreen{
@@ -87,8 +97,8 @@ Export Pending (PDF)
 
 <script>
 /* 🔐 PASSWORD */
-const PASSWORDSS = ["vinoth600","clean@247"];
-const VERSION = "v11";
+const PASSWORDS = ["vinoth600","clean@247"];
+const VERSION = "v12";
 
 if(localStorage.getItem("unlock") === VERSION){
   lockScreen.style.display="none";
@@ -105,7 +115,7 @@ function unlock(){
   }
 }
 
-/* 🔥 FIREBASE */
+/* 🔥 FIREBASE INIT */
 firebase.initializeApp({
   apiKey: "AIzaSyCWbIwSjYSHrMYvvKK8HByqcDy6wUj7pu8",
   authDomain: "vinoth-car-cleaning-reminder.firebaseapp.com",
@@ -127,10 +137,6 @@ async function saveData(){
     return;
   }
 
-  const btn = event.target;
-  btn.disabled = true;
-  btn.innerText = "Saving...";
-
   try{
     await ref.add({
       name: name.value.trim(),
@@ -143,7 +149,7 @@ async function saveData(){
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
     });
 
-    // ✅ clear fields AFTER save
+    // ✅ CLEAR FIELDS AFTER SAVE
     name.value = "";
     flat.value = "";
     car.value = "";
@@ -156,21 +162,19 @@ async function saveData(){
     alert("Saved successfully ✅");
 
   } catch(e){
+    console.error("Firebase error:", e);
     alert("Save failed ❌");
-    console.error(e);
   }
-
-  btn.disabled = false;
-  btn.innerText = "Save";
 }
 
-/* 📄 EXPORT PENDING PDF (LIVE QUERY) */
+/* 📄 EXPORT PENDING PDF (LIVE FROM FIRESTORE) */
 async function exportPendingPDF(){
   const snap = await ref.where("status","==","pending").get();
   const { jsPDF } = window.jspdf;
   const pdf = new jsPDF();
 
   pdf.text("Vinoth Car Cleaning – Pending Payments",10,10);
+
   let y = 20;
   let i = 1;
 
@@ -185,7 +189,10 @@ async function exportPendingPDF(){
       );
       y += 8;
       i++;
-      if(y > 280){ pdf.addPage(); y = 20; }
+      if(y > 280){
+        pdf.addPage();
+        y = 20;
+      }
     });
   }
 
