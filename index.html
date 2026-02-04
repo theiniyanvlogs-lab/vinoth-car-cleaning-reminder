@@ -15,15 +15,7 @@ button{padding:10px;width:100%;margin-top:8px;border:none;border-radius:6px;font
 .showAll{background:#6c757d;color:#fff}
 .card{border-bottom:1px solid #ddd;padding:10px 0}
 small{color:#555}
-#lockScreen{
-  max-width:380px;
-  margin:80px auto;
-  padding:20px;
-  background:#fff;
-  border-radius:10px;
-  box-shadow:0 4px 10px rgba(0,0,0,0.1);
-  text-align:center
-}
+#lockScreen{max-width:380px;margin:80px auto;padding:20px;background:#fff;border-radius:10px;box-shadow:0 4px 10px rgba(0,0,0,0.1);text-align:center}
 </style>
 </head>
 <body>
@@ -32,7 +24,7 @@ small{color:#555}
 <div id="lockScreen">
   <h3>🔒 Enter Password</h3>
   <input type="password" id="passwordInput">
-  <button type="button" class="add" onclick="unlockApp()">Unlock</button>
+  <button id="unlockBtn" class="add" type="button">Unlock</button>
   <p id="errorText" style="color:red"></p>
 </div>
 
@@ -73,12 +65,12 @@ small{color:#555}
   <option value="paid">Paid</option>
 </select>
 
-<button type="button" class="add" onclick="addOrUpdate()">Save</button>
+<button id="saveBtn" class="add" type="button">Save</button>
 </div>
 
 <div class="actions">
-  <button type="button" class="pendingBtn" onclick="setView('pending')">Show Pending</button>
-  <button type="button" class="showAll" onclick="setView('all')">Show All</button>
+  <button id="pendingBtn" class="pendingBtn" type="button">Show Pending</button>
+  <button id="allBtn" class="showAll" type="button">Show All</button>
 </div>
 
 <div class="list">
@@ -95,37 +87,49 @@ small{color:#555}
 <script>
 /* 🔐 PASSWORD */
 const ALLOWED_PASSWORDS=["vinoth600","clean@247"];
-const PASSWORD_VERSION="v10";
+const PASSWORD_VERSION="v11";
+
+const lockScreen=document.getElementById("lockScreen");
+const appContent=document.getElementById("appContent");
 
 if(localStorage.getItem("appUnlocked")===PASSWORD_VERSION){
   lockScreen.style.display="none";
   appContent.style.display="block";
 }
-function unlockApp(){
+
+document.getElementById("unlockBtn").addEventListener("click",()=>{
   if(ALLOWED_PASSWORDS.includes(passwordInput.value)){
     localStorage.setItem("appUnlocked",PASSWORD_VERSION);
     lockScreen.style.display="none";
     appContent.style.display="block";
-  } else errorText.innerText="Wrong password";
-}
+  } else {
+    errorText.innerText="Wrong password";
+  }
+});
 
-/* 🔥 FIREBASE CONFIG */
-const firebaseConfig={
+/* 🔥 FIREBASE */
+firebase.initializeApp({
   apiKey:"AIzaSyCWbIwSjYSHrMYvvKK8HByqcDy6wUj7pu8",
   authDomain:"vinoth-car-cleaning-reminder.firebaseapp.com",
-  projectId:"vinoth-car-cleaning-reminder",
-  storageBucket:"vinoth-car-cleaning-reminder.firebasestorage.app",
-  messagingSenderId:"891866037857",
-  appId:"1:891866037857:web:47065f705a44cbb85db420"
-};
-
-firebase.initializeApp(firebaseConfig);
+  projectId:"vinoth-car-cleaning-reminder"
+});
 const db=firebase.firestore();
 const ref=db.collection("carPayments");
 
 /* STATE */
 let payments=[];
 let viewMode="all";
+
+/* BUTTON EVENTS */
+document.getElementById("pendingBtn").addEventListener("click",()=>{
+  viewMode="pending";
+  render();
+});
+document.getElementById("allBtn").addEventListener("click",()=>{
+  viewMode="all";
+  render();
+});
+document.getElementById("saveBtn").addEventListener("click",addOrUpdate);
 
 /* ADD */
 async function addOrUpdate(){
@@ -139,12 +143,7 @@ async function addOrUpdate(){
     status:status.value.toLowerCase()
   };
 
-  if(
-    data.mobile.length<10 ||
-    !month.value ||
-    !year.value ||
-    (!data.flat && !data.car)
-  ){
+  if(data.mobile.length<10 || !month.value || !year.value || (!data.flat && !data.car)){
     alert("Please enter Mobile Number and Flat or Car");
     return;
   }
@@ -161,13 +160,7 @@ function resetForm(){
   status.value="pending";
 }
 
-/* VIEW */
-function setView(mode){
-  viewMode=mode;
-  render();
-}
-
-/* LOAD */
+/* FIREBASE LISTENER */
 ref.onSnapshot(snap=>{
   payments=[];
   snap.forEach(d=>payments.push({...d.data(),id:d.id}));
@@ -180,10 +173,9 @@ function render(){
   let total=0;
 
   payments.forEach(p=>{
-    const status=(p.status||"").toLowerCase();
-
-    if(viewMode==="pending" && status!=="pending") return;
-    if(status==="pending") total+=p.amount;
+    const s=(p.status||"").toLowerCase();
+    if(viewMode==="pending" && s!=="pending") return;
+    if(s==="pending") total+=p.amount;
 
     paymentList.innerHTML+=`
       <div class="card">
@@ -193,9 +185,8 @@ function render(){
         📞 ${p.mobile}<br>
         🗓️ ${p.month}<br>
         💰 ₹${p.amount}
-        <small> • ${status.toUpperCase()}</small>
-      </div>
-    `;
+        <small> • ${s.toUpperCase()}</small>
+      </div>`;
   });
 
   totalPending.innerText=total;
