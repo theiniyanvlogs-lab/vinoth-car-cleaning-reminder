@@ -75,9 +75,12 @@ box-shadow:0 4px 10px rgba(0,0,0,0.1);text-align:center}
 <button class="add" onclick="addOrUpdate()">Save</button>
 </div>
 
+<!-- 🔍 SEARCH -->
 <div class="form">
-<h3>Filter</h3>
-<input id="filterText" placeholder="Filter by Flat or Car" oninput="render()">
+<h3>Search</h3>
+<input id="filterText" placeholder="Enter Flat or Car Number (Ex: G202)">
+<button class="add" onclick="applySearch()">Search</button>
+<button class="delete" onclick="clearSearch()">Clear</button>
 </div>
 
 <div class="list">
@@ -95,70 +98,71 @@ box-shadow:0 4px 10px rgba(0,0,0,0.1);text-align:center}
 /* =====================
    🔐 PASSWORD CONFIG
    ===================== */
-const ALLOWED_PASSWORDS = ["vinoth600", "clean@247"];
-const PASSWORD_VERSION = "v2"; // 🔁 CHANGE THIS when password changes
+const ALLOWED_PASSWORDS=["vinoth600","clean@247"];
+const PASSWORD_VERSION="v3"; // 🔁 change when password changes
 
-if (localStorage.getItem("appUnlocked") === PASSWORD_VERSION) {
-  lockScreen.style.display = "none";
-  appContent.style.display = "block";
+if(localStorage.getItem("appUnlocked")===PASSWORD_VERSION){
+  lockScreen.style.display="none";
+  appContent.style.display="block";
 }
 
-function unlockApp() {
-  if (ALLOWED_PASSWORDS.includes(passwordInput.value)) {
-    localStorage.setItem("appUnlocked", PASSWORD_VERSION);
-    lockScreen.style.display = "none";
-    appContent.style.display = "block";
+function unlockApp(){
+  if(ALLOWED_PASSWORDS.includes(passwordInput.value)){
+    localStorage.setItem("appUnlocked",PASSWORD_VERSION);
+    lockScreen.style.display="none";
+    appContent.style.display="block";
   } else {
-    errorText.innerText = "Wrong password";
+    errorText.innerText="Wrong password";
   }
 }
 
 /* =====================
    🔥 FIREBASE CONFIG
    ===================== */
-const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_PROJECT.firebaseapp.com",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_PROJECT.appspot.com",
-  messagingSenderId: "XXXX",
-  appId: "XXXX"
+const firebaseConfig={
+  apiKey:"YOUR_API_KEY",
+  authDomain:"YOUR_PROJECT.firebaseapp.com",
+  projectId:"YOUR_PROJECT_ID",
+  storageBucket:"YOUR_PROJECT.appspot.com",
+  messagingSenderId:"XXXX",
+  appId:"XXXX"
 };
 firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
-const ref = db.collection("carPayments");
+const db=firebase.firestore();
+const ref=db.collection("carPayments");
 
 /* =====================
    📦 DATA
    ===================== */
-let payments = [];
-let editId = null;
+let payments=[];
+let editId=null;
+let activeFilter="";
 
 /* ➕ ADD / ✏️ EDIT */
-async function addOrUpdate() {
-  const data = {
-    name: ownerName.value.trim(),
-    flat: flatNo.value.trim(),
-    car: carNo.value.trim(),
-    mobile: mobile.value.trim(),
-    month: month.value + " " + year.value,
-    amount: +amount.value,
-    status: status.value
+async function addOrUpdate(){
+  const data={
+    name:ownerName.value.trim(),
+    flat:flatNo.value.trim(),
+    car:carNo.value.trim(),
+    mobile:mobile.value.trim(),
+    month:month.value+" "+year.value,
+    amount:+amount.value,
+    status:status.value
   };
 
-  if (
+  if(
     !data.mobile ||
     !month.value ||
     !year.value ||
     (!data.flat && !data.car)
-  ) {
+  ){
     alert("Please enter Mobile and at least Flat or Car Number");
     return;
   }
 
-  if (editId) {
+  if(editId){
     await ref.doc(editId).set(data);
-    editId = null;
+    editId=null;
   } else {
     await ref.add(data);
   }
@@ -168,42 +172,42 @@ async function addOrUpdate() {
 }
 
 /* 🔁 RESET */
-function resetForm() {
-  ownerName.value = flatNo.value = carNo.value = mobile.value = "";
-  month.value = year.value = "";
-  amount.value = 600;
-  status.value = "pending";
+function resetForm(){
+  ownerName.value=flatNo.value=carNo.value=mobile.value="";
+  month.value=year.value="";
+  amount.value=600;
+  status.value="pending";
 }
 
 /* 🟢 MARK PAID */
-function markPaid(id) {
-  ref.doc(id).update({ status: "paid" });
+function markPaid(id){
+  ref.doc(id).update({status:"paid"});
 }
 
 /* ✏️ EDIT */
-function editEntry(p) {
-  ownerName.value = p.name || "";
-  flatNo.value = p.flat || "";
-  carNo.value = p.car || "";
-  mobile.value = p.mobile;
-  const parts = p.month.split(" ");
-  month.value = parts[0];
-  year.value = parts[1];
-  amount.value = p.amount;
-  status.value = p.status;
-  editId = p.id;
+function editEntry(p){
+  ownerName.value=p.name||"";
+  flatNo.value=p.flat||"";
+  carNo.value=p.car||"";
+  mobile.value=p.mobile;
+  const parts=p.month.split(" ");
+  month.value=parts[0];
+  year.value=parts[1];
+  amount.value=p.amount;
+  status.value=p.status;
+  editId=p.id;
 }
 
 /* 🗑️ DELETE */
-function deleteEntry(id) {
-  if (confirm("Delete this entry?")) {
+function deleteEntry(id){
+  if(confirm("Delete this entry?")){
     ref.doc(id).delete();
   }
 }
 
 /* 📲 WHATSAPP */
-function sendReminder(p) {
-  const msg = `Hi Sir/Madam,
+function sendReminder(p){
+  const msg=`Hi Sir/Madam,
 Car cleaning charge of ₹${p.amount} for ${p.month} is pending.
 Kindly make the payment when convenient.
 
@@ -212,51 +216,66 @@ Vinoth
 +91 7358461020
 Madha Kovil Street, Nolambur`;
   window.open(
-    "https://wa.me/" + p.mobile + "?text=" + encodeURIComponent(msg),
+    "https://wa.me/"+p.mobile+"?text="+encodeURIComponent(msg),
     "_blank"
   );
 }
 
+/* 🔍 SEARCH */
+function applySearch(){
+  activeFilter=document.getElementById("filterText").value;
+  render();
+}
+function clearSearch(){
+  document.getElementById("filterText").value="";
+  activeFilter="";
+  render();
+}
+
 /* 🖥️ LOAD & RENDER */
-function loadData() {
-  ref.onSnapshot(snap => {
-    payments = [];
-    snap.forEach(d => payments.push({ ...d.data(), id: d.id }));
+function loadData(){
+  ref.onSnapshot(snap=>{
+    payments=[];
+    snap.forEach(d=>payments.push({...d.data(),id:d.id}));
     render();
   });
 }
 
-function render() {
-  paymentList.innerHTML = "";
-  let total = 0;
-  const f = filterText.value.toLowerCase();
+function render(){
+  paymentList.innerHTML="";
+  let total=0;
 
-  payments.forEach(p => {
-    if (f && !(`${p.flat} ${p.car}`.toLowerCase().includes(f))) return;
-    if (p.status === "pending") total += p.amount;
+  const f=(activeFilter||"").toLowerCase().replace(/[\s-]/g,"");
 
-    paymentList.innerHTML += `
-      <div class="card">
-        <b>${p.name || "Owner"}</b>
-        ${p.flat ? `(Flat ${p.flat})` : ""}<br>
-        ${p.car ? `🚗 ${p.car}<br>` : ""}
-        ${p.month} – ₹${p.amount}
-        <small> • ${p.status.toUpperCase()}</small><br>
+  payments.forEach(p=>{
+    const flat=(p.flat||"").toLowerCase().replace(/[\s-]/g,"");
+    const car=(p.car||"").toLowerCase().replace(/[\s-]/g,"");
 
-        ${
-          p.status === "pending"
-            ? `<button class="pending" onclick="markPaid('${p.id}')">Mark Paid</button>
-               <button class="whatsapp" onclick='sendReminder(${JSON.stringify(p)})'>WhatsApp</button>`
-            : `<button class="paid">Paid</button>`
-        }
+    if(f && !(flat.includes(f)||car.includes(f))) return;
 
-        <button class="edit" onclick='editEntry(${JSON.stringify(p)})'>Edit</button>
-        <button class="delete" onclick="deleteEntry('${p.id}')">Delete</button>
-      </div>
-    `;
+    if(p.status==="pending") total+=p.amount;
+
+    paymentList.innerHTML+=`
+    <div class="card">
+      <b>${p.name||"Owner"}</b>
+      ${p.flat?`(Flat ${p.flat})`:""}<br>
+      ${p.car?`🚗 ${p.car}<br>`:""}
+      ${p.month} – ₹${p.amount}
+      <small> • ${p.status.toUpperCase()}</small><br>
+
+      ${
+        p.status==="pending"
+        ? `<button class="pending" onclick="markPaid('${p.id}')">Mark Paid</button>
+           <button class="whatsapp" onclick='sendReminder(${JSON.stringify(p)})'>WhatsApp</button>`
+        : `<button class="paid">Paid</button>`
+      }
+
+      <button class="edit" onclick='editEntry(${JSON.stringify(p)})'>Edit</button>
+      <button class="delete" onclick="deleteEntry('${p.id}')">Delete</button>
+    </div>`;
   });
 
-  totalPending.innerText = total;
+  totalPending.innerText=total;
 }
 
 loadData();
