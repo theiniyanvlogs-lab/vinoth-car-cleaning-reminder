@@ -17,8 +17,15 @@ button{padding:10px;width:100%;margin-top:8px;border:none;border-radius:6px;font
 .paid{background:#28a745;color:#fff}
 .card{border-bottom:1px solid #ddd;padding:10px 0}
 small{color:#555}
-#lockScreen{max-width:380px;margin:80px auto;padding:20px;background:#fff;border-radius:10px;
-box-shadow:0 4px 10px rgba(0,0,0,0.1);text-align:center}
+#lockScreen{
+  max-width:380px;
+  margin:80px auto;
+  padding:20px;
+  background:#fff;
+  border-radius:10px;
+  box-shadow:0 4px 10px rgba(0,0,0,0.1);
+  text-align:center
+}
 </style>
 </head>
 <body>
@@ -27,7 +34,7 @@ box-shadow:0 4px 10px rgba(0,0,0,0.1);text-align:center}
 <div id="lockScreen">
   <h3>🔒 Enter Password</h3>
   <input type="password" id="passwordInput">
-  <button class="add" onclick="unlockApp()">Unlock</button>
+  <button type="button" class="add" onclick="unlockApp()">Unlock</button>
   <p id="errorText" style="color:red"></p>
 </div>
 
@@ -68,12 +75,16 @@ box-shadow:0 4px 10px rgba(0,0,0,0.1);text-align:center}
   <option value="paid">Paid</option>
 </select>
 
-<button class="add" onclick="addOrUpdate()">Save</button>
+<button type="button" class="add" onclick="addOrUpdate()">Save</button>
 </div>
 
 <div class="actions">
-  <button class="pendingBtn" onclick="setView('pending')">Show Pending</button>
-  <button class="showAll" onclick="setView('all')">Show All</button>
+  <button type="button" class="pendingBtn" onclick="setView('pending')">
+    Show Pending
+  </button>
+  <button type="button" class="showAll" onclick="setView('all')">
+    Show All
+  </button>
 </div>
 
 <div class="list">
@@ -90,7 +101,7 @@ box-shadow:0 4px 10px rgba(0,0,0,0.1);text-align:center}
 <script>
 /* 🔐 PASSWORD */
 const ALLOWED_PASSWORDS = ["vinoth600","clean@247"];
-const PASSWORD_VERSION = "v8";
+const PASSWORD_VERSION = "v9";
 
 if(localStorage.getItem("appUnlocked") === PASSWORD_VERSION){
   lockScreen.style.display="none";
@@ -106,7 +117,7 @@ function unlockApp(){
   }
 }
 
-/* 🔥 FIREBASE CONFIG (REAL VALUES) */
+/* 🔥 FIREBASE CONFIG */
 const firebaseConfig = {
   apiKey: "AIzaSyCWbIwSjYSHrMYvvKK8HByqcDy6wUj7pu8",
   authDomain: "vinoth-car-cleaning-reminder.firebaseapp.com",
@@ -164,7 +175,7 @@ function setView(mode){
   render();
 }
 
-/* LOAD */
+/* LOAD FROM FIREBASE */
 ref.onSnapshot(snapshot=>{
   payments = [];
   snapshot.forEach(doc=>{
