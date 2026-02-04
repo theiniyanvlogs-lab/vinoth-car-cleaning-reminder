@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <title>Vinoth Car Cleaning – Payments</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-
 <style>
 body{font-family:Arial;background:#f4f6f8;padding:15px}
 h2{text-align:center}
@@ -21,21 +20,20 @@ button{padding:10px;width:100%;margin-top:8px;border:none;border-radius:6px;font
 .delete{background:#6c757d;color:#fff}
 .card{border-bottom:1px solid #ddd;padding:10px 0}
 small{color:#555}
-#lockScreen{max-width:380px;margin:80px auto;padding:20px;background:#fff;border-radius:10px;
-box-shadow:0 4px 10px rgba(0,0,0,0.1);text-align:center}
+#lockScreen{max-width:380px;margin:80px auto;padding:20px;background:#fff;border-radius:10px;box-shadow:0 4px 10px rgba(0,0,0,0.1);text-align:center}
 </style>
 </head>
 <body>
 
-<!-- 🔒 PASSWORD SCREEN -->
+<!-- 🔒 PASSWORD -->
 <div id="lockScreen">
   <h3>🔒 Enter Password</h3>
-  <input type="password" id="passwordInput" placeholder="Enter password">
+  <input type="password" id="passwordInput">
   <button class="add" onclick="unlockApp()">Unlock</button>
   <p id="errorText" style="color:red"></p>
 </div>
 
-<!-- 🔓 APP CONTENT -->
+<!-- 🔓 APP -->
 <div id="appContent" style="display:none">
 
 <h2>🚗 Vinoth Car Cleaning – Payments</h2>
@@ -46,12 +44,10 @@ box-shadow:0 4px 10px rgba(0,0,0,0.1);text-align:center}
 
 <div class="form">
 <h3>Add / Edit Customer</h3>
-
 <input id="ownerName" placeholder="Owner Name (optional)">
 <input id="flatNo" placeholder="Flat Number (optional)">
 <input id="carNo" placeholder="Car Number (optional)">
-<input id="mobile" placeholder="WhatsApp Number (91XXXXXXXXXX)">
-
+<input id="mobile" placeholder="WhatsApp Number">
 <select id="month">
   <option value="">Select Month</option>
   <option>January</option><option>February</option><option>March</option>
@@ -59,28 +55,21 @@ box-shadow:0 4px 10px rgba(0,0,0,0.1);text-align:center}
   <option>July</option><option>August</option><option>September</option>
   <option>October</option><option>November</option><option>December</option>
 </select>
-
 <select id="year">
   <option value="">Select Year</option>
-  <option>2024</option>
-  <option>2025</option>
-  <option>2026</option>
+  <option>2024</option><option>2025</option><option>2026</option>
 </select>
-
 <input id="amount" type="number" value="600">
-
 <select id="status">
   <option value="pending">Pending</option>
   <option value="paid">Paid</option>
 </select>
-
 <button class="add" onclick="addOrUpdate()">Save</button>
 </div>
 
-<!-- 🔘 ACTION BUTTONS -->
 <div class="actions">
-  <button class="pendingBtn" onclick="showPending()">Show Pending</button>
-  <button class="showAll" onclick="showAll()">Show All</button>
+  <button class="pendingBtn" onclick="setView('pending')">Show Pending</button>
+  <button class="showAll" onclick="setView('all')">Show All</button>
 </div>
 
 <div class="list">
@@ -97,8 +86,7 @@ box-shadow:0 4px 10px rgba(0,0,0,0.1);text-align:center}
 <script>
 /* 🔐 PASSWORD */
 const ALLOWED_PASSWORDS=["vinoth600","clean@247"];
-const PASSWORD_VERSION="v5";
-
+const PASSWORD_VERSION="v6";
 if(localStorage.getItem("appUnlocked")===PASSWORD_VERSION){
   lockScreen.style.display="none";
   appContent.style.display="block";
@@ -111,25 +99,22 @@ function unlockApp(){
   } else errorText.innerText="Wrong password";
 }
 
-/* 🔥 FIREBASE CONFIG – REPLACE */
+/* 🔥 FIREBASE CONFIG */
 const firebaseConfig={
   apiKey:"YOUR_API_KEY",
   authDomain:"YOUR_PROJECT.firebaseapp.com",
-  projectId:"YOUR_PROJECT_ID",
-  storageBucket:"YOUR_PROJECT.appspot.com",
-  messagingSenderId:"XXXX",
-  appId:"XXXX"
+  projectId:"YOUR_PROJECT_ID"
 };
 firebase.initializeApp(firebaseConfig);
 const db=firebase.firestore();
 const ref=db.collection("carPayments");
 
-/* 📦 DATA */
+/* STATE */
 let payments=[];
 let editId=null;
-let viewMode="all"; // all | pending
+let viewMode="all";
 
-/* ➕ ADD / ✏️ EDIT */
+/* ADD / EDIT */
 async function addOrUpdate(){
   const data={
     name:ownerName.value.trim(),
@@ -141,21 +126,22 @@ async function addOrUpdate(){
     status:status.value
   };
 
-  if(!data.mobile || !month.value || !year.value || (!data.flat && !data.car)){
-    alert("Please enter Mobile and at least Flat or Car Number");
+  if(!data.mobile||!month.value||!year.value||(!data.flat&&!data.car)){
+    alert("Enter Mobile and Flat or Car");
     return;
   }
 
+  resetForm();        // ✅ clear immediately
+  editId && (editId=null);
+
   if(editId){
     await ref.doc(editId).set(data);
-    editId=null;
   } else {
     await ref.add(data);
   }
-  resetForm();
 }
 
-/* 🔁 RESET */
+/* RESET */
 function resetForm(){
   ownerName.value=flatNo.value=carNo.value=mobile.value="";
   month.value=year.value="";
@@ -163,14 +149,16 @@ function resetForm(){
   status.value="pending";
 }
 
-/* 🔘 VIEW CONTROLS */
-function showPending(){ viewMode="pending"; render(); }
-function showAll(){ viewMode="all"; render(); }
+/* VIEW */
+function setView(mode){
+  viewMode=mode;
+  render();
+}
 
-/* 🟢 MARK PAID */
+/* MARK PAID */
 function markPaid(id){ ref.doc(id).update({status:"paid"}); }
 
-/* ✏️ EDIT */
+/* EDIT */
 function editEntry(p){
   ownerName.value=p.name||"";
   flatNo.value=p.flat||"";
@@ -183,42 +171,26 @@ function editEntry(p){
   editId=p.id;
 }
 
-/* 🗑️ DELETE */
+/* DELETE */
 function deleteEntry(id){
-  if(confirm("Delete this entry?")) ref.doc(id).delete();
+  if(confirm("Delete?")) ref.doc(id).delete();
 }
 
-/* 📲 WHATSAPP */
-function sendReminder(p){
-  const msg=`Hi Sir/Madam,
-Car cleaning charge of ₹${p.amount} for ${p.month} is pending.
-Kindly make the payment when convenient.
+/* LOAD */
+ref.onSnapshot(snap=>{
+  payments=[];
+  snap.forEach(d=>payments.push({...d.data(),id:d.id}));
+  render();   // 🔑 only render here
+});
 
-Thank you,
-Vinoth
-+91 7358461020
-Madha Kovil Street, Nolambur`;
-  window.open("https://wa.me/"+p.mobile+"?text="+encodeURIComponent(msg),"_blank");
-}
-
-/* 🔄 LOAD */
-function loadData(){
-  ref.onSnapshot(snap=>{
-    payments=[];
-    snap.forEach(d=>payments.push({...d.data(),id:d.id}));
-    render();
-  });
-}
-
-/* 🖥️ RENDER */
+/* RENDER */
 function render(){
   paymentList.innerHTML="";
   let total=0;
 
   payments.forEach(p=>{
     if(viewMode==="pending" && p.status!=="pending") return;
-
-    if(p.status==="pending") total+=Number(p.amount);
+    if(p.status==="pending") total+=p.amount;
 
     paymentList.innerHTML+=`
     <div class="card">
@@ -230,12 +202,9 @@ function render(){
       💰 ₹${p.amount}
       <small> • ${p.status.toUpperCase()}</small><br>
 
-      ${
-        p.status==="pending"
-        ? `<button class="pending" onclick="markPaid('${p.id}')">Mark Paid</button>
-           <button class="whatsapp" onclick='sendReminder(${JSON.stringify(p)})'>WhatsApp</button>`
-        : `<button class="paid">Paid</button>`
-      }
+      ${p.status==="pending"
+        ? `<button class="pending" onclick="markPaid('${p.id}')">Mark Paid</button>`
+        : `<button class="paid">Paid</button>`}
 
       <button class="edit" onclick='editEntry(${JSON.stringify(p)})'>Edit</button>
       <button class="delete" onclick="deleteEntry('${p.id}')">Delete</button>
@@ -244,9 +213,6 @@ function render(){
 
   totalPending.innerText=total;
 }
-
-/* 🚀 START */
-loadData();
 </script>
 
 </body>
